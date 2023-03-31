@@ -1,5 +1,7 @@
-## 1. get onnx 
+## 1. get onnx
+
 download directly at [weiyun](https://share.weiyun.com/3T3mZKBm) or [google driver](https://drive.google.com/drive/folders/1-8phZHkx_Z274UVqgw6Ma-6u5AKmqCOv) or export onnx:
+
 ```bash
 # 🔥 yolov8 offical repo: https://github.com/ultralytics/ultralytics
 # 🔥 yolov8 quickstart: https://docs.ultralytics.com/quickstart/
@@ -22,6 +24,7 @@ https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8x6.pt
 ```
 
 export onnx:
+
 ```bash
 # 640
 yolo mode=export model=yolov8n.pt format=onnx dynamic=True    #simplify=True
@@ -34,12 +37,14 @@ yolo mode=export model=yolov8x6.pt format=onnx dynamic=True   #simplify=True
 ```
 
 ## 2.edit and save onnx
+
 ```bash
 # note: If you have obtained onnx by downloading, this step can be ignored
 ignore
 ```
 
 ## 3.compile onnx
+
 ```bash
 # put your onnx file in this path:tensorrt-alpha/data/yolov8
 cd tensorrt-alpha/data/yolov8
@@ -53,7 +58,9 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/TensorRT-8.4.2.4/lib
 # 1280
 ../../../../TensorRT-8.4.2.4/bin/trtexec   --onnx=yolov8x6.onnx  --saveEngine=yolov8x6.trt  --buildOnly --minShapes=images:1x3x1280x1280 --optShapes=images:4x3x1280x1280 --maxShapes=images:8x3x1280x1280
 ```
+
 ## 4.run
+
 ```bash
 git clone https://github.com/FeiYull/tensorrt-alpha
 cd tensorrt-alpha/yolov8
@@ -68,14 +75,17 @@ make -j10
 ./app_yolov8  --model=../../data/yolov8/yolov8n.trt --size=640 --batch_size=1  --img=../../data/6406407.jpg   --show --savePath=../
 
 # infer video
-./app_yolov8  --model=../../data/yolov8/yolov8n.trt     --size=640 --batch_size=8  --video=../../data/people.mp4  --show 
+./app_yolov8  --model=../../data/yolov8/yolov8n.trt     --size=640 --batch_size=8  --video=../../data/people.mp4  --show
 
 # infer camera
-./app_yolov8  --model=../../data/yolov8/yolov8n.trt     --size=640 --batch_size=2  --cam_id=0  --show
+./app_yolov8  --model=../../data/yolov8/yolov8n.trt     --size=640 --batch_size=1  --cam_id=0  --show
+./app_yolov8  --model=../../data/yolov8/best.trt     --size=640 --batch_size=1  --cam_id=0  --show
 
 ## 1280
 # infer camera
 ./app_yolov8  --model=../../data/yolov8/yolov8x6.trt     --size=1280 --batch_size=2  --cam_id=0  --show
 ```
+
 ## 5. appendix
+
 ignore

@@ -17,7 +17,7 @@ list(APPEND INCLUDE_DRIS ${CUDA_INCLUDE_DIRS})
 # my tensorrt's path!!!!!!!!!!!!!!!!!!!1
 #set(TensorRT_ROOT /root/TensorRT-8.2.1.8)
 #set(TensorRT_ROOT /root/TensorRT-Plugin)
-set(TensorRT_ROOT /root/TensorRT-8.4.2.4)
+set(TensorRT_ROOT /home/yvc/TensorRT-8.4.2.4)
 
 find_library(TRT_NVINFER NAMES nvinfer HINTS ${TensorRT_ROOT} PATH_SUFFIXES lib lib64 lib/x64)
 find_library(TRT_NVINFER_PLUGIN NAMES nvinfer_plugin HINTS ${TensorRT_ROOT} PATH_SUFFIXES lib lib64 lib/x64)

@@ -57,3 +57,5 @@ add_executable(app_yolov8 app_yolov8.cpp)
 # NVCC
 # target_link_libraries(detect ${PROJECT_NAME} ${ALL_LIBS} ${OpenCV_LIBRARIES} libgflags_nothreads.a)
 target_link_libraries(app_yolov8 ${PROJECT_NAME} ${ALL_LIBS} ${OpenCV_LIBRARIES} )
+
+
