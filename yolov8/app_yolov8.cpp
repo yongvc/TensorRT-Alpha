@@ -7,14 +7,14 @@ void setParameters(utils::InitParameter &initParameters)
 {
 	initParameters.class_names = utils::dataSets::pole;
 	// initParameters.class_names = utils::dataSets::voc20;
-	initParameters.num_class = 80; // for coco
+	initParameters.num_class = 4; // for coco
 	// initParameters.num_class = 20; // for voc2012
 
 	initParameters.batch_size = 1;
 	initParameters.dst_h = 640;
 	initParameters.dst_w = 640;
 	initParameters.input_output_names = {"images", "output0"};
-	initParameters.conf_thresh = 0.60f;
+	initParameters.conf_thresh = 0.30f;
 	initParameters.iou_thresh = 0.45f;
 	initParameters.save_path = "";
 }
@@ -176,8 +176,9 @@ int main(int argc, char **argv)
 	int batchi = 0;
 	int track_mode = 0;
 	char key = 0;
+	cv::TrackerKCF::Params params;
+	params.detect_thresh = 0.2;
 	cv::Ptr<cv::Tracker> tracker = cv::TrackerKCF::create();
-	tracker->init(frame, roi);
 	while (capture.isOpened() && key != 'q')
 	{
 		utils::DeviceTimer fps_t;
@@ -213,21 +214,11 @@ int main(int argc, char **argv)
 		}
 		else // infer
 		{
-			task(yolo, param, imgs_batch, delay_time, batchi, is_show, is_save);
-
-			if (key == 't')
-			{
-				track_mode = 1;
-				tracker->init(frame, roi);
-			}
-			else if (key == 'r')
-			{
-				track_mode = 0;
-			}
 
 			// Add tracking here
 			if (!track_mode)
 			{
+				task(yolo, param, imgs_batch, delay_time, batchi, is_show, is_save);
 				// get detected position in x and y
 				std::vector<std::vector<utils::Box>> objectss = yolo.getObjectss();
 				for (auto &objects : objectss)
@@ -239,7 +230,7 @@ int main(int argc, char **argv)
 						for (auto &object : objects)
 						{
 							// find object with higest confidence and closest to center
-							mark = object.confidence * 1 + (1 - abs((object.left + object.right) / 2 - param.dst_w / 2) / (param.dst_w * 0.5));
+							mark = object.confidence * 1 + (1 - abs((object.left + object.right) / 2 - imgs_batch[0].size().width / 2) / (imgs_batch[0].size().width * 0.5));
 							if (mark > highest_mark)
 							{
 								highest_mark = mark;
@@ -252,7 +243,7 @@ int main(int argc, char **argv)
 						// cv::rectangle(imgs_batch[0], cv::Point(objects[a].left, objects[a].top), cv::Point(objects[a].right, objects[a].bottom), utils::Colors::color4[objects[a].label], 2, cv::LINE_AA);
 						cv::circle(imgs_batch[0], cv::Point((objects[a].left + objects[a].right) / 2, objects[a].top), 5, cv::Scalar(0, 0, 255), -1);
 						sample::gLogInfo
-							<< mark << "  " << objects[a].confidence * 1.0 << "  " << (1 - abs((objects[a].left + objects[a].right) / 2 - param.dst_w / 2) / (param.dst_w * 0.5)) << "  "
+							<< mark << "  " << objects[a].confidence * 1.0 << "  " << (1 - abs((objects[a].left + objects[a].right) / 2 - imgs_batch[0].size().width / 2) / (imgs_batch[0].size().width * 0.5)) << "  "
 							<< "x: " << (objects[a].left + objects[a].right) << " y: " << objects[a].top << std::endl;
 					}
 				}
@@ -260,10 +251,83 @@ int main(int argc, char **argv)
 			}
 			else
 			{
-				tracker->update(imgs_batch[0], roi);
-				cv::rectangle(imgs_batch[0], roi, cv::Scalar(0, 255, 0), 2, cv::LINE_AA);
+				// if (tracker->update(imgs_batch[0], roi))
+				if (false)
+				{
+					cv::rectangle(imgs_batch[0], roi, cv::Scalar(0, 255, 255), 2, cv::LINE_AA);
+					cv::circle(imgs_batch[0], cv::Point((roi.x + roi.width / 2), roi.y), 5, cv::Scalar(0, 0, 255), -1);
+
+					// // zoom
+					// cv::Mat zoom_img = imgs_batch[0];
+					// cv::resize(zoom_img, zoom_img, cv::Size(imgs_batch[0].size().width * 2.0, imgs_batch[0].size().height * 2.0), cv::INTER_LINEAR);
+					// float zx, zy, zw, zh;
+					// zx = (roi.x * 2.0 + roi.width - imgs_batch[0].size().width / 2) < 0 ? 0 : (roi.x * 2.0 + roi.width - imgs_batch[0].size().width / 2);
+					// zy = (roi.y * 2.0 + roi.height - imgs_batch[0].size().height / 2) < 0 ? 0 : (roi.y * 2.0 + roi.height - imgs_batch[0].size().height / 2);
+					// zw = zx + imgs_batch[0].size().width > zoom_img.size().width ? zoom_img.size().width - zx : imgs_batch[0].size().width;
+					// zh = zy + imgs_batch[0].size().height > zoom_img.size().height ? zoom_img.size().height - zy : imgs_batch[0].size().height;
+					// if (zx + zw > zoom_img.size().width)
+					// {
+					// 	zx = zoom_img.size().width - zw;
+					// }
+					// if (zy + zh > zoom_img.size().height)
+					// {
+					// 	zy = zoom_img.size().height - zh;
+					// }
+
+					// zoom_img = zoom_img(cv::Rect(zx, zy, zw, zh));
+					// zoom_img.copyTo(imgs_batch[0]);
+				}
+				else
+				{
+					task(yolo, param, imgs_batch, delay_time, batchi, is_show, is_save);
+					std::vector<std::vector<utils::Box>> objectss = yolo.getObjectss();
+					for (auto &objects : objectss)
+					{
+						if (objects.size() > 0)
+						{
+							int i = 0, a = 0;
+							float distance = 100000, mark;
+							for (auto &object : objects)
+							{
+								// find object nearest to last roi
+								mark = sqrt(pow(object.left - roi.x, 2) + pow(object.top - roi.y, 2));
+								if (mark < distance)
+								{
+									distance = mark;
+									a = i;
+								}
+								i++;
+							}
+							cv::putText(imgs_batch[0], cv::format("dD/t: %.2f", distance), cv::Point(350, 20), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0, 255, 0), 2, cv::LINE_AA);
+							roi = cv::Rect(objects[a].left, objects[a].top, objects[a].right - objects[a].left, objects[a].bottom - objects[a].top);
+							cv::rectangle(imgs_batch[0], roi, cv::Scalar(0, 255, 255), 2, cv::LINE_AA);
+							// tracker->clear();
+							// cv::TrackerKCF::Params params;
+							// params.detect_thresh = 0.2;
+							// tracker = cv::TrackerKCF::create();
+							// tracker->init(imgs_batch[0], roi);
+						}
+					}
+				}
+
+				// cv::resize(imgs_batch[0], imgs_batch[0], cv::Size(imgs_batch[0].size().width * 1.5, imgs_batch[0].size().height * 1.5), cv::INTER_LINEAR);
+
 				cv::putText(imgs_batch[0], "Tracker: ON", cv::Point(150, 20), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0, 255, 0), 2, cv::LINE_AA);
-				sample::gLogInfo << "Tracking...   " << roi << std::endl;
+				sample::gLogInfo << "Tracking...   " << roi << "   " << imgs_batch[0].size() << std::endl;
+			}
+
+			if (key == 't')
+			{
+				track_mode = 1;
+				tracker->clear();
+				cv::TrackerKCF::Params params;
+				params.detect_thresh = 0.2;
+				tracker = cv::TrackerKCF::create();
+				tracker->init(imgs_batch[0], roi);
+			}
+			else if (key == 'r')
+			{
+				track_mode = 0;
 			}
 
 			// display fps
